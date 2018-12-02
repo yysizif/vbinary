@@ -1,5 +1,7 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
+#
+# vbinary-eval.pl
 #
 # This program supplements the article
 #
@@ -26,31 +28,52 @@
 #   limitations under the License.
 #
 
-# Output the "capacity vs bits" table based on vbinary code
-# specification
+# Output the "capacity vs bits" table based on vbinary code specification.
+# With -v, output level details.
+# With -g, generate codewords to infinity or to the limit set with -NNN.
 
 use bigint;
 
-my $spec;                       # received in ARGV
-my $verbose;                    # -"-
+# variables set by parse_args() or left undefined
+my $spec;
+my $verbose;
+my $generate;
+my $maxval;
+
 
 sub usage {
-    die "Usage: vbinary-eval.pl [-v] vbinary-spec\n";
+    die "Usage: vbinary-eval.pl [-v][-g][-NNN] vbinary-spec\n";
 }
 
+
 sub parse_args {
-    for (@ARGV) {
-        if (/^-v/) {
+    while (@ARGV) {
+        local $_ = shift @ARGV;
+        if (s/^-v//) {
             $verbose++;
         }
-        elsif (/^vbinary/ && !$spec) {
-            $spec = $_;
+        elsif (s/^-g//) {
+            my @prefixes = ("");
+            my $start = 0;
+            $generate = sub {
+                my ($end, @a) = generate ($start, shift(@prefixes), @_);
+                $start = $end;
+                push @prefixes, @a;
+            };
+        }
+        elsif (s/^-(\d+)$//) {
+            $maxval = $1;
+        }
+        elsif (!$spec && s/^(vbinary\S+)//) {
+            $spec = $1;
         }
         else {
             usage ();
         }
+        unshift @ARGV, "-$_" if $_ ne "";
     }
 }
+
 
 sub die_with_pos {
     my ($errmsg, $left) = @_;
@@ -58,6 +81,24 @@ sub die_with_pos {
     my $line1 = "$errmsg: $consumed";
     my $indent = " " x length ($line1);
     die "${line1}\n${indent}${left}\n";
+}
+
+
+# Output codewords for one extension level to STDOUT.  Return the list
+# of extension codewords (empty for terminal extensions), which will
+# appear as $prefix in subsequent invocations of generate()
+sub generate {
+    my ($start, $prefix, $width, $nvalues, $nexts) = @_;
+    for (my $i = 0; $i < $nvalues; $i++) {
+        last if $start > $maxval;
+        print $start++;
+        printf(" %s%0*b\n", $prefix, $width, $i);
+    }
+    my @ret = ($start);
+    for (my $i = 0; $i < $nexts; $i++) {
+        push @ret, sprintf("$prefix%0*b", $width, $nvalues + $i);
+    }
+    return @ret;
 }
 
 
@@ -213,7 +254,7 @@ sub main {
     parse_args ();
     local $_ = $spec;
 
-    print "0 0\n" unless $verbose;
+    print "0 0\n" unless $verbose || $generate;
 
     s/^vbinary// || usage ();
     /^\d/ || usage ();
@@ -252,13 +293,18 @@ sub main {
                        " totbits %2u totvalues $totvalues\n",
                        $level, $i, $width, $nvalues, $extcount, $bits);
             }
-            else {
+            elsif (! $generate) {
                 print "$bits $totvalues\n" if $nvalues;
+            }
+            if ($generate) {
+                $generate->($width, $nvalues, $extcount);
+                last if $maxval && $totvalues > $maxval;
             }
         }
         # Switch to the next level, unless the code is finite and the
         # last level is finished
         last unless defined $exti;
+        last if $maxval && $totvalues > $maxval;
         $bits += ($curlevel->[0][$exti] >> 4);
         $curlevel = $nextlevel;
     }
