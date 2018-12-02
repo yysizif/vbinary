@@ -35,7 +35,7 @@ Enable verbosity with -v to understand how vbinary parameters work:
 
 Combined -g and -NNN options show codeword table up to NNN:
 
-    % ./vbinary-eval.pl -g10 'vbinary1x2x(2,1x)(a1,a0)' | & m
+    % ./vbinary-eval.pl -g10 'vbinary1x2x(2,1x)(a1,a0)'
     0 0
     1 100
     2 101
@@ -51,7 +51,7 @@ Combined -g and -NNN options show codeword table up to NNN:
 Adding -v to the last example you get level info combined with
 codeword list:
 
-    % ./vbinary-eval.pl -vg10 'vbinary1x2x(2,1x)(a1,a0)' | & m
+    % ./vbinary-eval.pl -vg10 'vbinary1x2x(2,1x)(a1,a0)'
     level  0/0 width  1 data   1 exts 1 totbits  1 totvalues 1
     0 0
     level  1/0 width  2 data   2 exts 2 totbits  3 totvalues 3
