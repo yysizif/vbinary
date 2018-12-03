@@ -90,7 +90,7 @@ sub die_with_pos {
 sub generate {
     my ($start, $prefix, $width, $nvalues, $nexts) = @_;
     for (my $i = 0; $i < $nvalues; $i++) {
-        last if $start > $maxval;
+        last if $maxval &&$start > $maxval;
         print $start++;
         printf(" %s%0*b\n", $prefix, $width, $i);
     }
